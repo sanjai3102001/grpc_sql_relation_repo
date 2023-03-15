@@ -44,12 +44,14 @@ func (server *UserManagementServer) Run() error {
 func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.NewUser) (*pb.User, error) {
 
 	createSql := `
-	CREATE TABLE IF NOT EXISTS roles (
-		roll_id INTEGER,
-		name VARCHAR(255),
-		statement INTEGER,
-		owner_service_id INTEGER,
-		service_id INTEGER
+	CREATE TABLE IF NOT EXIST roll_assignment (
+		assignment_id INTEGER,
+		assignee VARCHAR(255) NOT NULL,
+		role_id INTEGER NOT NULL,
+		status INTEGER,
+		tenant_id INTEGER,
+		service_id INTEGER,
+		is_group INTEGER,
 	  );
 	`
 	_, err := server.conn.Exec(context.Background(), createSql)
@@ -60,7 +62,7 @@ func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.Ne
 
 	server.first_user_creation = false
 
-	log.Printf("Received: %v %v %v %v %v", in.GetRollId(), in.GetName(), in.GetStatement(), in.GetOwnerServiceId(), in.GetServiceId())
+	log.Printf("Received: %v %v %v %v %v %v %v", in.GetAssignmentId(), in.GetAssaignee(), in.GetRollId(), in.GetStatus(), in.GetTenantId(), in.GetServiceId(), in.GetIsGroup())
 
 	created_user := &pb.User{RollId: in.GetRollId(), Name: in.GetName(), Statement: in.GetStatement(), OwnerServiceId: in.GetOwnerServiceId(), ServiceId: in.GetServiceId()}
 	tx, err := server.conn.Begin(context.Background())
