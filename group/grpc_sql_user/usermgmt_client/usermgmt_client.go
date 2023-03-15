@@ -30,8 +30,8 @@ func main() {
 	// new_users1["user_id"] = "sanjai"
 	// var arr [5]int32
 	// myarr := [5]int{1, 2, 3, 4, 5}
-	statement := 2
-	owner_servce_id := 1
+	admin := 1
+	member := 1
 	service_id := 2
 	var new_users = make(map[int]string)
 	new_users[5] = "Sanjai"
@@ -41,17 +41,17 @@ func main() {
 	new_users[1] = "Haris"
 	// for service_id, name, owner_id, prefix, action := range new_users {
 	// 	r, err := c.CreateNewUser(ctx, &pb.NewUser{ServiceId: int32(service_id), Name: string(name), OwnerId: int32(owner_id), Prefix: int32(prefix), Action: int32(action)})
-	for roll_id, name := range new_users {
-		r, err := c.CreateNewUser(ctx, &pb.NewUser{RollId: int32(roll_id), Name: string(name), Statement: int32(statement), OwnerServiceId: int32(owner_servce_id), ServiceId: int32(service_id)})
+	for group_id, name := range new_users {
+		r, err := c.CreateNewUser(ctx, &pb.NewUser{GroupId: int32(group_id), Name: string(name), Member: int32(member), Admin: int32(admin), ServiceId: int32(service_id)})
 		if err != nil {
 			log.Fatalf("could not create user: %v", err)
 		}
 		log.Printf(`service Details:
-roll_id: %d
+group_id: %d
 name: %s
-statemrnt: %d
-owner_service_id: %d
-service_id: %d`, r.GetRollId(), r.GetName(), r.GetStatement(), r.GetOwnerServiceId(), r.GetServiceId())
+member: %d
+admin: %d
+service_id: %d`, r.GetGroupId(), r.GetName(), r.GetMember(), r.GetAdmin(), r.GetServiceId())
 
 	}
 	params := &pb.GetUsersParams{}

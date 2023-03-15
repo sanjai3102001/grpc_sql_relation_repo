@@ -44,12 +44,13 @@ func (server *UserManagementServer) Run() error {
 func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.NewUser) (*pb.User, error) {
 
 	createSql := `
-	CREATE TABLE IF NOT EXISTS roles (
-		roll_id INTEGER,
-		name VARCHAR(255),
-		statement INTEGER,
-		owner_service_id INTEGER,
-		service_id INTEGER
+	CREATE TABLE IF NOT EXIST groups (
+		group_id UUID  PRIMARY KEY,
+		name VARCHAR(255) NOT NULL,
+		member INTEGER[] NOT NULL,
+		admins INTEGER[] NOT NULL,
+		service_id UUID,
+		FOREIGN KEY (service_id) REFERENCES service(service_id)
 	  );
 	`
 	_, err := server.conn.Exec(context.Background(), createSql)
@@ -60,16 +61,16 @@ func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.Ne
 
 	server.first_user_creation = false
 
-	log.Printf("Received: %v %v %v %v %v", in.GetRollId(), in.GetName(), in.GetStatement(), in.GetOwnerServiceId(), in.GetServiceId())
+	log.Printf("Received: %v %v %v %v %v", in.GetGroupId(), in.GetName(), in.GetMember(), in.GetAdmin(), in.GetServiceId())
 
-	created_user := &pb.User{RollId: in.GetRollId(), Name: in.GetName(), Statement: in.GetStatement(), OwnerServiceId: in.GetOwnerServiceId(), ServiceId: in.GetServiceId()}
+	created_user := &pb.User{GroupId: in.GetGroupId(), Name: in.GetName(), Member: in.GetMember(), Admin: in.GetAdmin(), ServiceId: in.GetServiceId()}
 	tx, err := server.conn.Begin(context.Background())
 	if err != nil {
 		log.Fatalf("conn.Begin failed: %v", err)
 	}
 
-	_, err = tx.Exec(context.Background(), "insert into roles(roll_id, name, statement, owner_service_id, service_id) values ($1,$2,$3,$4,$5)",
-		created_user.RollId, created_user.Name, created_user.Statement, created_user.OwnerServiceId, created_user.ServiceId)
+	_, err = tx.Exec(context.Background(), "insert into group(group_id, name, member, admin, service_id) values ($1,$2,$3,$4,$5)",
+		created_user.GroupId, created_user.Name, created_user.Member, created_user.Admin, created_user.ServiceId)
 	if err != nil {
 		log.Fatalf("tx.Exec failed: %v", err)
 	}
@@ -81,14 +82,14 @@ func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.Ne
 func (server *UserManagementServer) GetUsers(ctx context.Context, in *pb.GetUsersParams) (*pb.UsersList, error) {
 
 	var users_list *pb.UsersList = &pb.UsersList{}
-	rows, err := server.conn.Query(context.Background(), "select * from roles")
+	rows, err := server.conn.Query(context.Background(), "select * from group")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		user := pb.User{}
-		err = rows.Scan(&user.ServiceId, &user.OwnerServiceId, &user.Statement, &user.Name, &user.RollId)
+		err = rows.Scan(&user.ServiceId, &user.Admin, &user.Member, &user.Name, &user.GroupId)
 		if err != nil {
 			return nil, err
 		}

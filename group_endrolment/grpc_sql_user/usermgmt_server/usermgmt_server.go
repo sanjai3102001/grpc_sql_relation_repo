@@ -44,12 +44,12 @@ func (server *UserManagementServer) Run() error {
 func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.NewUser) (*pb.User, error) {
 
 	createSql := `
-	CREATE TABLE IF NOT EXISTS roles (
-		roll_id INTEGER,
-		name VARCHAR(255),
-		statement INTEGER,
-		owner_service_id INTEGER,
-		service_id INTEGER
+	CREATE TABLE group_enrollment (
+		group_id UUID,
+		user_id UUID,
+		PRIMARY KEY (group_id, user_id),
+		FOREIGN KEY (group_id) REFERENCES groups(group_id),
+		FOREIGN KEY (user_id) REFERENCES users(user_id)
 	  );
 	`
 	_, err := server.conn.Exec(context.Background(), createSql)
@@ -60,16 +60,16 @@ func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.Ne
 
 	server.first_user_creation = false
 
-	log.Printf("Received: %v %v %v %v %v", in.GetRollId(), in.GetName(), in.GetStatement(), in.GetOwnerServiceId(), in.GetServiceId())
+	log.Printf("Received: %v %v", in.GetGroupId(), in.GetUserId())
 
-	created_user := &pb.User{RollId: in.GetRollId(), Name: in.GetName(), Statement: in.GetStatement(), OwnerServiceId: in.GetOwnerServiceId(), ServiceId: in.GetServiceId()}
+	created_user := &pb.User{GroupId: in.GetGroupId(), UserId: in.GetUserId()}
 	tx, err := server.conn.Begin(context.Background())
 	if err != nil {
 		log.Fatalf("conn.Begin failed: %v", err)
 	}
 
-	_, err = tx.Exec(context.Background(), "insert into roles(roll_id, name, statement, owner_service_id, service_id) values ($1,$2,$3,$4,$5)",
-		created_user.RollId, created_user.Name, created_user.Statement, created_user.OwnerServiceId, created_user.ServiceId)
+	_, err = tx.Exec(context.Background(), "insert into group_endrolment(group_id, user_id) values ($1,$2)",
+		created_user.GroupId, created_user.UserId)
 	if err != nil {
 		log.Fatalf("tx.Exec failed: %v", err)
 	}
@@ -81,14 +81,14 @@ func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.Ne
 func (server *UserManagementServer) GetUsers(ctx context.Context, in *pb.GetUsersParams) (*pb.UsersList, error) {
 
 	var users_list *pb.UsersList = &pb.UsersList{}
-	rows, err := server.conn.Query(context.Background(), "select * from roles")
+	rows, err := server.conn.Query(context.Background(), "select * from group_endrolment")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		user := pb.User{}
-		err = rows.Scan(&user.ServiceId, &user.OwnerServiceId, &user.Statement, &user.Name, &user.RollId)
+		err = rows.Scan(&user.UserId, &user.GroupId)
 		if err != nil {
 			return nil, err
 		}

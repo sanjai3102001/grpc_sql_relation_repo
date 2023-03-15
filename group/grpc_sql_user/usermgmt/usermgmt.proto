@@ -11,19 +11,19 @@ service UserManagement {
 }
 
 message NewUser {
-  int32 roll_id = 1;
+  int32 group_id = 1;
   string name = 2;
-  int32 statement = 3;
-  int32 owner_service_id = 4;
+  int32 member = 3;
+  int32 admin = 4;
   int32  service_id = 5; 
 }
 
 message User {
-  int32 roll_id = 1;
+  int32 group_id = 1;
   string name = 2;
-  int32 statement = 3;
-  int32 owner_service_id = 4;
-  int32  service_id = 5; 
+  int32 member = 3;
+  int32 admin = 4;
+  int32  service_id = 5;  
 }
 
 message GetUsersParams {
@@ -33,5 +33,4 @@ message GetUsersParams {
 message UsersList {
   repeated User users = 1; 
 }
-
 
