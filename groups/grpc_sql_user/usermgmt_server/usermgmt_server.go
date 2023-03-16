@@ -44,14 +44,12 @@ func (server *UserManagementServer) Run() error {
 func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.NewUser) (*pb.User, error) {
 
 	createSql := `
-	CREATE TABLE IF NOT EXIST roll_assignment (
-		assignment_id INTEGER,
-		assignee VARCHAR(255) NOT NULL,
-		role_id INTEGER NOT NULL,
-		status INTEGER,
-		tenant_id INTEGER,
-		service_id INTEGER,
-		is_group INTEGER,
+	CREATE TABLE group_enrollment (
+		group_id UUID,
+		user_id UUID,
+		PRIMARY KEY (group_id, user_id),
+		FOREIGN KEY (group_id) REFERENCES groups(group_id),
+		FOREIGN KEY (user_id) REFERENCES users(user_id)
 	  );
 	`
 	_, err := server.conn.Exec(context.Background(), createSql)
@@ -62,27 +60,16 @@ func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.Ne
 
 	server.first_user_creation = false
 
-<<<<<<< HEAD
-	log.Printf("Received: %v %v %v %v %v %v %v", in.GetRollAssignmentId(), in.GetAssaignee(), in.GetRollId(), in.GetStatus(), in.GetTenantId(), in.GetServiceId(), in.GetIsGroup())
+	log.Printf("Received: %v %v", in.GetGroupId(), in.GetUserId())
 
-	created_user := &pb.User{RollAssignmentId: in.GetRollAssignmentId(), Assaignee: in.GetAssaignee(), RollId: in.GetRollId(), Status: in.GetStatus(), TenantId: in.GetTenantId(), ServiceId: in.GetServiceId(), IsGroup: in.GetIsGroup()}
-=======
-	log.Printf("Received: %v %v %v %v %v %v %v", in.GetAssignmentId(), in.GetAssaignee(), in.GetRollId(), in.GetStatus(), in.GetTenantId(), in.GetServiceId(), in.GetIsGroup())
-
-	created_user := &pb.User{AssignmentId: in.GetAssignmentId(), Assaignee: in.GetAssaignee(), RollId: in.GetRollId(), Status: in.GetStatus(), TenantId: in.GetTenantId(), ServiceId: in.GetServiceId(), IsGroup: in.GetIsGroup()}
->>>>>>> origin/main
+	created_user := &pb.User{GroupId: in.GetGroupId(), UserId: in.GetUserId()}
 	tx, err := server.conn.Begin(context.Background())
 	if err != nil {
 		log.Fatalf("conn.Begin failed: %v", err)
 	}
 
-<<<<<<< HEAD
-	_, err = tx.Exec(context.Background(), "insert into roll_assignment(roll_assignment_id, assaignee, roll_id, status, tenant_id, service_id) values ($1,$2,$3,$4,$5,$6,$7)",
-		created_user.RollAssignmentId, created_user.Assaignee, created_user.RollId, created_user.Status, created_user.TenantId, created_user.ServiceId, created_user.IsGroup)
-=======
-	_, err = tx.Exec(context.Background(), "insert into roll_assignment(assignment, assaignee, roll_id, status, tenant_id, service_id) values ($1,$2,$3,$4,$5,$6,$7)",
-		created_user.AssignmentId, created_user.Assaignee, created_user.RollId, created_user.Status, created_user.TenantId, created_user.ServiceId, created_user.IsGroup)
->>>>>>> origin/main
+	_, err = tx.Exec(context.Background(), "insert into group_endrolment(group_id, user_id) values ($1,$2)",
+		created_user.GroupId, created_user.UserId)
 	if err != nil {
 		log.Fatalf("tx.Exec failed: %v", err)
 	}
@@ -94,18 +81,14 @@ func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.Ne
 func (server *UserManagementServer) GetUsers(ctx context.Context, in *pb.GetUsersParams) (*pb.UsersList, error) {
 
 	var users_list *pb.UsersList = &pb.UsersList{}
-	rows, err := server.conn.Query(context.Background(), "select * from roll_assignment")
+	rows, err := server.conn.Query(context.Background(), "select * from group_endrolment")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		user := pb.User{}
-<<<<<<< HEAD
-		err = rows.Scan(&user.IsGroup, &user.ServiceId, &user.TenantId, &user.Status, &user.RollId, &user.Assaignee, &user.RollAssignmentId)
-=======
-		err = rows.Scan(&user.IsGroup, &user.ServiceId, &user.TenantId, &user.Status, &user.RollId, &user.Assaignee, &user.AssignmentId)
->>>>>>> origin/main
+		err = rows.Scan(&user.UserId, &user.GroupId)
 		if err != nil {
 			return nil, err
 		}
